@@ -1,12 +1,12 @@
 <template>
   <button class="favorite-button" @click="toggleFavorite">
     <img
-      src="/components/icons/stars/active.svg"
+      src="/icons/stars/active.svg"
       alt="Active Star"
       v-if="isFavorite()"
     />
     <img
-      src="/components/icons/stars/inactive.svg"
+      src="/icons/stars/inactive.svg"
       alt="Inactive Star"
       v-if="!isFavorite()"
     />
