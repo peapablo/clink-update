@@ -1,61 +1,60 @@
 <template>
   <button class="favorite-button" @click="toggleFavorite">
     <img
-      src="/icons/stars/active.svg"
+      v-if="isFavorite"
+      :src="activeStar"
       alt="Active Star"
-      v-if="isFavorite()"
     />
     <img
-      src="/icons/stars/inactive.svg"
+      v-else
+      :src="inactiveStar"
       alt="Inactive Star"
-      v-if="!isFavorite()"
     />
   </button>
 </template>
-<script>
-import Vue from "vue";
 
-import { mapState } from "vuex";
+<script setup>
+import { ref, computed } from 'vue';
+import { useStore } from 'pinia'; 
+import { useRoute } from 'vue-router'; 
 
-export default {
-  name: "favorite-button",
-  props: {
-    path: {
-      type: String,
-      required: true,
-    },
+const store = useStore();
+const route = useRoute(); 
+
+const props = defineProps({
+  path: {
+    type: String,
+    required: true,
   },
-  data() {
-    return {};
-  },
-  methods: {
-    isFavorite() {
-      const list = this.favoriteMenus?.[this.profile?.id] ?? [];
-      return list.includes(this.path);
-    },
-    toggleFavorite() {
-      const favoriteMenuList = { ...(this.favoriteMenus ?? {}) };
-      const list = favoriteMenuList[this.profile?.id] ?? [];
+});
 
-      if (this.isFavorite()) {
-        const index = list.indexOf(this.path);
-        list.splice(index, 1);
-      } else {
-        list.push(this.path);
-      }
+const isFavorite = computed(() => {
+  const list = store.favoriteMenus[store.profile?.id] ?? [];
+  return list.includes(props.path);
+});
 
-      favoriteMenuList[this.profile?.id] = list;
+const toggleFavorite = () => {
+  const favoriteMenuList = { ...store.favoriteMenus };
+  const list = favoriteMenuList[store.profile?.id] ?? [];
 
-      this.$store.commit("setFavoritesMenus", favoriteMenuList); // Use the correct mutation name
-    },
-  },
-  computed: {
-    ...mapState(["favoriteMenus", "profile"]),
-  },
+  if (isFavorite.value) {
+    const index = list.indexOf(props.path);
+    list.splice(index, 1);
+  } else {
+    list.push(props.path);
+  }
+
+  favoriteMenuList[store.profile?.id] = list;
+
+  
+  store.setFavoritesMenus(favoriteMenuList);
 };
+
+const activeStar = '/icons/stars/active.svg';
+const inactiveStar = '/icons/stars/inactive.svg';
 </script>
 
-<style>
+<style scoped>
 .favorite-button-container {
   position: absolute;
   right: 20px;
@@ -70,10 +69,8 @@ export default {
   outline: none;
   border-radius: 8px;
   transition: all 0.3s;
-
   width: 36px;
   height: 36px;
-
   display: flex;
   justify-content: center;
   align-items: center;
