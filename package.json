@@ -1,0 +1,23 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "axios": "^1.8.1",
+    "chart.js": "^4.4.8",
+    "element-plus": "^2.9.5",
+    "flatpickr": "^4.6.13",
+    "nuxt": "^3.15.4",
+    "sweetalert2": "^11.17.2",
+    "vue": "^3.5.13",
+    "vue-flatpickr-component": "^11.0.5",
+    "vue-router": "^4.5.0"
+  }
+}
