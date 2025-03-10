@@ -223,9 +223,6 @@
                 <template slot="footer">
                   <span class="text-success mr-2">PRELIMINARY</span>
                   <span class="text-nowrap">{{ summary.countPreliminary }}</span>
-                  /
-                  <span class="text-success mr-2">VALIDATE</span>
-                  <span class="text-nowrap">{{ summary.countValidate }}</span>
                 </template>
               </stats-card>
             </NuxtLink>
@@ -341,233 +338,177 @@
         <!-- End charts-->
         <!-- start daily report -->
         <!-- end daily report -->
+        <LineChart :reactiveProp="reactiveProp" />
       </div>
     </div>
   </template>
-  <script>
-  import axios from "axios";
+  <script setup>
+  import { ref, watch, onMounted, computed } from 'vue';
+  import { useStore } from 'vuex';
+  import { useRouter } from 'vue-router';
+  import axios from 'axios';
+  import swal from 'sweetalert2';
   
   // Charts
-  import * as chartConfigs from "@/components/argon-core/Charts/config";
-  import LineChart from "@/components/argon-core/Charts/LineChart";
-  import BarChart from "@/components/argon-core/Charts/BarChart";
-  import DoughnutChart from "@/components/argon-core/Charts/DoughnutChart";
+  import * as chartConfigs from '@/components/argon-core/Charts/config';
+  import LineChart from '@/components/argon-core/Charts/LineChart';
+  import BarChart from '@/components/argon-core/Charts/BarChart';
+  import DoughnutChart from '@/components/argon-core/Charts/DoughnutChart';
   
   // Components
-  import BaseProgress from "@/components/argon-core/BaseProgress";
-  import RouteBreadCrumb from "@/components/argon-core/Breadcrumb/RouteBreadcrumb";
-  import StatsCard from "@/components/argon-core/Cards/StatsCard";
-  import FavoriteButton from "./components/favorite-button.vue";
+  import BaseProgress from '@/components/argon-core/BaseProgress';
+  import RouteBreadCrumb from '@/components/argon-core/Breadcrumb/RouteBreadcrumb';
+  import StatsCard from '@/components/argon-core/Cards/StatsCard';
+  import FavoriteButton from './components/favorite-button.vue';
   
   // Lists
-  import ActivityFeed from "@/components/pages/dashboard/ActivityFeed.vue";
-  import TaskList from "@/components/pages/dashboard/TaskList.vue";
-  import UserList from "@/components/pages/dashboard/UserList.vue";
-  import ProgressTrackList from "@/components/pages/dashboard/ProgressTrackList.vue";
+  import ActivityFeed from '@/components/pages/dashboard/ActivityFeed.vue';
+  import TaskList from '@/components/pages/dashboard/TaskList.vue';
+  import UserList from '@/components/pages/dashboard/UserList.vue';
+  import ProgressTrackList from '@/components/pages/dashboard/ProgressTrackList.vue';
   
   // Tables
-  import LightTable from "@/components/pages/dashboard/LightTable.vue";
-  import SocialTrafficTable from "@/components/pages/dashboard/SocialTrafficTable.vue";
-  import PageVisitsTable from "@/components/pages/dashboard/PageVisitsTable.vue";
+  import LightTable from '@/components/pages/dashboard/LightTable.vue';
+  import SocialTrafficTable from '@/components/pages/dashboard/SocialTrafficTable.vue';
+  import PageVisitsTable from '@/components/pages/dashboard/PageVisitsTable.vue';
   
   // month, year picker
-  import flatPicker from "vue-flatpickr-component";
-  import "flatpickr/dist/flatpickr.css";
-  import monthSelectPlugin from "flatpickr/dist/plugins/monthSelect/index.js";
-  import "flatpickr/dist/plugins/monthSelect/style.css";
-  import { mappingApi } from "@/util/mappingApi";
-  import swal from "sweetalert2";
+  import flatPicker from 'vue-flatpickr-component';
+  import 'flatpickr/dist/flatpickr.css';
+  import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
+  import 'flatpickr/dist/plugins/monthSelect/style.css';
+  import { mappingApi } from '@/util/mappingApi';
   
-  export default {
-    name: "Dashboard",
-    middleware: "protected",
-    layout: "DashboardLayout",
-    components: {
-      ActivityFeed,
-      flatPicker,
-      LineChart,
-      BarChart,
-      DoughnutChart,
-      BaseProgress,
-      RouteBreadCrumb,
-      StatsCard,
-      TaskList,
-      PageVisitsTable,
-      SocialTrafficTable,
-      LightTable,
-      UserList,
-      ProgressTrackList,
-      FavoriteButton,
+  const hideSummaryData = ref(true);
+  const summaryData = ref({
+    section1: {},
+    section2: {},
+    chart1: {},
+    chart2: {},
+  });
+  const chart1Options = {
+    legend: {
+      display: true,
     },
-    data() {
-      return {
-        hideSummaryData: true,
-        summaryData: {
-          section1: {},
-          section2: {},
-          chart1: {},
-          chart2: {},
+    responsive: true,
+    maintainAspectRatio: false,
+    tooltips: {
+      callbacks: {
+        label: (tooltipItems) => {
+          const label = summaryData.value.chart1.labels[tooltipItems.index];
+          const value = summaryData.value.chart1.datasets[0].data[tooltipItems.index];
+          return `${label} : ${value} %`;
         },
-        chart1Options: {
-          legend: {
-            display: true,
-          },
-          responsive: true,
-          maintainAspectRatio: false,
-          tooltips: {
-            callbacks: {
-              label: (tooltipItems) => {
-                const label = this.summaryData.chart1.labels[tooltipItems.index];
-                const value =
-                  this.summaryData.chart1.datasets[0].data[tooltipItems.index];
-  
-                return `${label} : ${value} %`;
-              },
-            },
-          },
-        },
-        chart2Options: {
-          legend: {
-            display: true,
-          },
-          responsive: true,
-          maintainAspectRatio: false,
-          tooltips: {
-            callbacks: {
-              label: (tooltipItems) => {
-                const label = this.summaryData.chart2.labels[tooltipItems.index];
-                const value =
-                  this.summaryData.chart2.datasets[0].data[tooltipItems.index];
-  
-                return `${label} : ${value} %`;
-              },
-            },
-          },
-        },
-  
-        flatpickerConfig: {
-          plugins: [
-            new monthSelectPlugin({
-              shorthand: true,
-              dateFormat: "Y-m",
-            }),
-          ],
-        },
-        monthYear_selected:
-          new Date().getFullYear().toString() + "-" + (new Date().getMonth() + 1),
-      };
-    },
-    beforeRouteLeave(to, from, next) {
-      clearInterval(this.summaryInterval);
-      next();
-    },
-    watch: {
-      monthYear_selected() {
-        this.loadSummary();
-      },
-    },
-    methods: {
-      loadSummary() {
-        this.hideSummaryData = true;
-  
-        const monthYear_selected = this.monthYear_selected;
-        let url = this.$store.state.urlBase + "/api/" + mappingApi("summary.php");
-        monthYear_selected;
-        const params = {
-          monthyear: monthYear_selected,
-        };
-  
-        axios
-          .get(url, {
-            params,
-          })
-          .then((res) => {
-            const { section1, section2, chart1, chart2 } = res.data;
-            this.summaryData.section1 = section1;
-            this.summaryData.section2 = section2;
-            this.summaryData.chart1 = {
-              labels: chart1.label.map(
-                (l) => l.substring(0, 1).toUpperCase() + l.substring(1)
-              ),
-              datasets: [
-                {
-                  label: "Data",
-                  backgroundColor: ["#41B883", "#E46651", "#00D8FF"],
-                  data: chart1.value,
-                },
-              ],
-            };
-            this.summaryData.chart2 = {
-              labels: chart2.label.map(
-                (l) => l.substring(0, 1).toUpperCase() + l.substring(1)
-              ),
-              datasets: [
-                {
-                  label: "Data",
-                  backgroundColor: ["#41B883", "#E46651", "#00D8FF"],
-                  data: chart2.value,
-                },
-              ],
-            };
-  
-            this.hideSummaryData = false;
-          })
-          .catch((err) => {
-            swal.fire({
-              title: "ดึงข้อมูลไม่สำเร็จ",
-              text:
-                err?.response?.data?.message ??
-                err?.message ??
-                "ไม่สามารถดึงข้อมูลได้",
-              icon: "error",
-              confirmButtonText: "Confirm",
-              buttonsStyling: false,
-              customClass: {
-                confirmButton: "btn btn-default",
-                cancelButton: "btn btn-light",
-              },
-            });
-          });
-      },
-    },
-    mounted() {
-      this.$store.commit("initializeStore");
-  
-      if (this.$store.state.accessToken === null) {
-        this.$router.push("/login");
-      }
-  
-      this.loadSummary();
-    },
-    computed: {
-      getChart1() {
-        return this.summaryData.chart1;
-      },
-      getChart2() {
-        return this.summaryData.chart2;
-      },
-      isChart1DataEqualZero() {
-        const isZero = (this.summaryData.chart1?.datasets?.[0]?.data ?? []).every(
-          (item) => parseInt(item) === 0 || item === null
-        );
-  
-        return (
-          isZero ||
-          (this.summaryData.chart1?.datasets?.[0]?.data ?? []).length === 0
-        );
-      },
-      isChart2DataEqualZero() {
-        const isZero = (this.summaryData.chart2?.datasets?.[0]?.data ?? []).every(
-          (item) => parseInt(item) === 0 || item === null
-        );
-  
-        return (
-          isZero ||
-          (this.summaryData.chart2?.datasets?.[0]?.data ?? []).length === 0
-        );
       },
     },
   };
-  </script>
-  <style></style>
+  const chart2Options = {
+    legend: {
+      display: true,
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    tooltips: {
+      callbacks: {
+        label: (tooltipItems) => {
+          const label = summaryData.value.chart2.labels[tooltipItems.index];
+          const value = summaryData.value.chart2.datasets[0].data[tooltipItems.index];
+          return `${label} : ${value} %`;
+        },
+      },
+    },
+  };
+  const flatpickerConfig = {
+    plugins: [
+      new monthSelectPlugin({
+        shorthand: true,
+        dateFormat: 'Y-m',
+      }),
+    ],
+  };
+  const monthYear_selected = ref(new Date().getFullYear().toString() + '-' + (new Date().getMonth() + 1));
   
+  const loadSummary = () => {
+    hideSummaryData.value = true;
+    const monthYear_selected_value = monthYear_selected.value;
+    const url = useRuntimeConfig().public.urlBase + '/api/' + mappingApi('summary.php');
+    const params = {
+      monthyear: monthYear_selected_value,
+    };
+  
+    axios
+      .get(url, { params })
+      .then((res) => {
+        const { section1, section2, chart1, chart2 } = res.data;
+        summaryData.value.section1 = section1;
+        summaryData.value.section2 = section2;
+        summaryData.value.chart1 = {
+          labels: chart1.label.map((l) => l.substring(0, 1).toUpperCase() + l.substring(1)),
+          datasets: [
+            {
+              label: 'Data',
+              backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
+              data: chart1.value,
+            },
+          ],
+        };
+        summaryData.value.chart2 = {
+          labels: chart2.label.map((l) => l.substring(0, 1).toUpperCase() + l.substring(1)),
+          datasets: [
+            {
+              label: 'Data',
+              backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
+              data: chart2.value,
+            },
+          ],
+        };
+        hideSummaryData.value = false;
+      })
+      .catch((err) => {
+        swal.fire({
+          title: 'ดึงข้อมูลไม่สำเร็จ',
+          text: err?.response?.data?.message ?? err?.message ?? 'ไม่สามารถดึงข้อมูลได้',
+          icon: 'error',
+          confirmButtonText: 'Confirm',
+          buttonsStyling: false,
+          customClass: {
+            confirmButton: 'btn btn-default',
+            cancelButton: 'btn btn-light',
+          },
+        });
+      });
+  };
+  
+  watch(monthYear_selected, loadSummary);
+  
+  onMounted(() => {
+    const store = useStore();
+    store.commit('initializeStore');
+  
+    if (store.state.accessToken === null) {
+      useRouter().push('/login');
+    }
+  
+    loadSummary();
+  });
+  
+  const getChart1 = computed(() => summaryData.value.chart1);
+  const getChart2 = computed(() => summaryData.value.chart2);
+  const isChart1DataEqualZero = computed(() => {
+    const isZero = (summaryData.value.chart1?.datasets?.[0]?.data ?? []).every(
+      (item) => parseInt(item) === 0 || item === null
+    );
+    return isZero || (summaryData.value.chart1?.datasets?.[0]?.data ?? []).length === 0;
+  });
+  const isChart2DataEqualZero = computed(() => {
+    const isZero = (summaryData.value.chart2?.datasets?.[0]?.data ?? []).every(
+      (item) => parseInt(item) === 0 || item === null
+    );
+    return isZero || (summaryData.value.chart2?.datasets?.[0]?.data ?? []).length === 0;
+  });
+  const reactiveProp = ref({
+    message: "This is a reactive prop",
+  });
+  </script>
+  
+  <style></style>

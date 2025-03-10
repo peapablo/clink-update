@@ -1,30 +1,50 @@
-import { Line, mixins } from 'vue-chartjs';
-import globalOptionsMixin from "@/components/argon-core/Charts/globalOptionsMixin";
+import { defineComponent, defineProps, watch } from "vue";
+import { Line } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+} from "chart.js";
 
-export default {
-  name: 'line-chart',
-  extends: Line,
-  mixins: [mixins.reactiveProp, globalOptionsMixin],
-  props: {
-    extraOptions: {
-      type: Object,
-      default: () => ({})
-    }
+// Register chart.js modules
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement
+);
+
+export default defineComponent({
+  name: "line-chart",
+  components: {
+    Line,
   },
-  data() {
-    return {
-      ctx: null
-    };
-  },
-  mounted() {
-    this.$watch(
-      'chartData',
-      (newVal, oldVal) => {
-        if (!oldVal) {
-          this.renderChart(this.chartData, this.extraOptions);
-        }
+  setup() {
+    const props = defineProps({
+      chartData: Object,
+      extraOptions: Object,
+      reactiveProp: Object,
+    });
+
+    // Watch for changes in `reactiveProp`
+    watch(
+      () => props.reactiveProp,
+      (newVal) => {
+        console.log("Reactive Prop Updated:", newVal);
       },
       { immediate: true }
     );
-  }
-};
+
+    return {
+      props,
+    };
+  },
+});

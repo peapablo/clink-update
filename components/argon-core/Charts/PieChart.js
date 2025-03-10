@@ -1,30 +1,50 @@
-import { Pie, mixins } from 'vue-chartjs';
+import { defineComponent, defineProps, watch } from "vue";
+import { Pie } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+} from "chart.js";
 import globalOptionsMixin from "@/components/argon-core/Charts/globalOptionsMixin";
 
-export default {
-  name: 'pie-chart',
-  extends: Pie,
-  mixins: [mixins.reactiveProp, globalOptionsMixin],
-  props: {
-    extraOptions: {
-      type: Object,
-      default: () => ({})
-    }
+// Register chart.js modules
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  CategoryScale,
+  LinearScale
+);
+
+export default defineComponent({
+  name: "pie-chart",
+  components: {
+    Pie,
   },
-  data() {
-    return {
-      ctx: null
-    };
-  },
-  mounted() {
-    this.$watch(
-      'chartData',
-      (newVal, oldVal) => {
-        if (!oldVal) {
-          this.renderChart(this.chartData, this.extraOptions);
-        }
+  mixins: [globalOptionsMixin],
+  setup() {
+    const props = defineProps({
+      chartData: Object,
+      extraOptions: Object,
+      reactiveProp: Object,
+    });
+
+    // Watch for changes in `reactiveProp`
+    watch(
+      () => props.reactiveProp,
+      (newVal) => {
+        console.log("Reactive Prop Updated:", newVal);
       },
       { immediate: true }
     );
-  }
-};
+
+    return {
+      props,
+    };
+  },
+});
