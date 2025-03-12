@@ -338,177 +338,139 @@
         <!-- End charts-->
         <!-- start daily report -->
         <!-- end daily report -->
-        <LineChart :reactiveProp="reactiveProp" />
+        <LineChart v-if="reactiveProp" :reactiveProp="reactiveProp" />
       </div>
     </div>
   </template>
+
   <script setup>
-  import { ref, watch, onMounted, computed } from 'vue';
-  import { useStore } from 'vuex';
-  import { useRouter } from 'vue-router';
-  import axios from 'axios';
-  import swal from 'sweetalert2';
-  
-  // Charts
-  import * as chartConfigs from '@/components/argon-core/Charts/config';
-  import LineChart from '@/components/argon-core/Charts/LineChart';
-  import BarChart from '@/components/argon-core/Charts/BarChart';
-  import DoughnutChart from '@/components/argon-core/Charts/DoughnutChart';
-  
-  // Components
-  import BaseProgress from '@/components/argon-core/BaseProgress';
-  import RouteBreadCrumb from '@/components/argon-core/Breadcrumb/RouteBreadcrumb';
-  import StatsCard from '@/components/argon-core/Cards/StatsCard';
-  import FavoriteButton from './components/favorite-button.vue';
-  
-  // Lists
-  import ActivityFeed from '@/components/pages/dashboard/ActivityFeed.vue';
-  import TaskList from '@/components/pages/dashboard/TaskList.vue';
-  import UserList from '@/components/pages/dashboard/UserList.vue';
-  import ProgressTrackList from '@/components/pages/dashboard/ProgressTrackList.vue';
-  
-  // Tables
-  import LightTable from '@/components/pages/dashboard/LightTable.vue';
-  import SocialTrafficTable from '@/components/pages/dashboard/SocialTrafficTable.vue';
-  import PageVisitsTable from '@/components/pages/dashboard/PageVisitsTable.vue';
-  
-  // month, year picker
-  import flatPicker from 'vue-flatpickr-component';
-  import 'flatpickr/dist/flatpickr.css';
-  import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
-  import 'flatpickr/dist/plugins/monthSelect/style.css';
-  import { mappingApi } from '@/util/mappingApi';
-  
-  const hideSummaryData = ref(true);
-  const summaryData = ref({
-    section1: {},
-    section2: {},
-    chart1: {},
-    chart2: {},
-  });
-  const chart1Options = {
-    legend: {
-      display: true,
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    tooltips: {
-      callbacks: {
-        label: (tooltipItems) => {
-          const label = summaryData.value.chart1.labels[tooltipItems.index];
-          const value = summaryData.value.chart1.datasets[0].data[tooltipItems.index];
-          return `${label} : ${value} %`;
-        },
+import { ref, watch, onMounted, computed } from 'vue';
+import { useMainStore } from '@/store';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
+import swal from 'sweetalert2';
+import { useRuntimeConfig } from '#app';
+
+// Charts
+import LineChart from '@/components/argon-core/Charts/LineChart';
+import DoughnutChart from '@/components/argon-core/Charts/DoughnutChart';
+
+// Month, Year Picker
+import flatPicker from 'vue-flatpickr-component';
+import 'flatpickr/dist/flatpickr.css';
+import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
+import 'flatpickr/dist/plugins/monthSelect/style.css';
+
+import mappingApi from '@/util/mappingApi';
+
+const router = useRouter();
+const store = useMainStore();
+store.initializeStore(); // Ensure localStorage values are loaded
+
+const hideSummaryData = ref(true);
+const summaryData = ref({
+  section1: {},
+  section2: {},
+  chart1: {},
+  chart2: {},
+});
+
+const config = useRuntimeConfig();
+const monthYear_selected = ref(
+  `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+);
+
+const chartOptions = {
+  legend: { display: true },
+  responsive: true,
+  maintainAspectRatio: false,
+  tooltips: {
+    callbacks: {
+      label: (tooltipItems, data) => {
+        const label = data.labels[tooltipItems.index] || '';
+        const value = data.datasets[0].data[tooltipItems.index] || 0;
+        return `${label} : ${value} %`;
       },
     },
-  };
-  const chart2Options = {
-    legend: {
-      display: true,
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    tooltips: {
-      callbacks: {
-        label: (tooltipItems) => {
-          const label = summaryData.value.chart2.labels[tooltipItems.index];
-          const value = summaryData.value.chart2.datasets[0].data[tooltipItems.index];
-          return `${label} : ${value} %`;
-        },
-      },
-    },
-  };
-  const flatpickerConfig = {
-    plugins: [
-      new monthSelectPlugin({
-        shorthand: true,
-        dateFormat: 'Y-m',
-      }),
-    ],
-  };
-  const monthYear_selected = ref(new Date().getFullYear().toString() + '-' + (new Date().getMonth() + 1));
-  
-  const loadSummary = () => {
+  },
+};
+
+const flatpickerConfig = {
+  plugins: [
+    new monthSelectPlugin({
+      shorthand: true,
+      dateFormat: 'Y-m',
+    }),
+  ],
+};
+
+const loadSummary = async () => {
+  try {
     hideSummaryData.value = true;
-    const monthYear_selected_value = monthYear_selected.value;
-    const url = useRuntimeConfig().public.urlBase + '/api/' + mappingApi('summary.php');
-    const params = {
-      monthyear: monthYear_selected_value,
+    const url = `${config.public.urlBase}/api/${mappingApi('summary.php')}`;
+    const { data } = await axios.get(url, { params: { monthyear: monthYear_selected.value } });
+
+    summaryData.value.section1 = data?.section1 ?? {};
+    summaryData.value.section2 = data?.section2 ?? {};
+    summaryData.value.chart1 = {
+      labels: (data?.chart1?.label ?? []).map((l) => l.charAt(0).toUpperCase() + l.slice(1)),
+      datasets: [
+        {
+          label: 'Data',
+          backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
+          data: data?.chart1?.value ?? [],
+        },
+      ],
     };
-  
-    axios
-      .get(url, { params })
-      .then((res) => {
-        const { section1, section2, chart1, chart2 } = res.data;
-        summaryData.value.section1 = section1;
-        summaryData.value.section2 = section2;
-        summaryData.value.chart1 = {
-          labels: chart1.label.map((l) => l.substring(0, 1).toUpperCase() + l.substring(1)),
-          datasets: [
-            {
-              label: 'Data',
-              backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
-              data: chart1.value,
-            },
-          ],
-        };
-        summaryData.value.chart2 = {
-          labels: chart2.label.map((l) => l.substring(0, 1).toUpperCase() + l.substring(1)),
-          datasets: [
-            {
-              label: 'Data',
-              backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
-              data: chart2.value,
-            },
-          ],
-        };
-        hideSummaryData.value = false;
-      })
-      .catch((err) => {
-        swal.fire({
-          title: 'ดึงข้อมูลไม่สำเร็จ',
-          text: err?.response?.data?.message ?? err?.message ?? 'ไม่สามารถดึงข้อมูลได้',
-          icon: 'error',
-          confirmButtonText: 'Confirm',
-          buttonsStyling: false,
-          customClass: {
-            confirmButton: 'btn btn-default',
-            cancelButton: 'btn btn-light',
-          },
-        });
-      });
-  };
-  
-  watch(monthYear_selected, loadSummary);
-  
-  onMounted(() => {
-    const store = useStore();
-    store.commit('initializeStore');
-  
-    if (store.state.accessToken === null) {
-      useRouter().push('/login');
-    }
-  
+    summaryData.value.chart2 = {
+      labels: (data?.chart2?.label ?? []).map((l) => l.charAt(0).toUpperCase() + l.slice(1)),
+      datasets: [
+        {
+          label: 'Data',
+          backgroundColor: ['#41B883', '#E46651', '#00D8FF'],
+          data: data?.chart2?.value ?? [],
+        },
+      ],
+    };
+
+    hideSummaryData.value = false;
+  } catch (err) {
+    swal.fire({
+      title: 'ดึงข้อมูลไม่สำเร็จ',
+      text: err?.response?.data?.message ?? err?.message ?? 'ไม่สามารถดึงข้อมูลได้',
+      icon: 'error',
+      confirmButtonText: 'Confirm',
+      buttonsStyling: false,
+      customClass: {
+        confirmButton: 'btn btn-default',
+        cancelButton: 'btn btn-light',
+      },
+    });
+  }
+};
+
+watch(monthYear_selected, loadSummary);
+
+onMounted(() => {
+  if (!store.accessToken) {
+    router.push('/login');
+  } else {
     loadSummary();
-  });
+  }
+});
+
+const getChart1 = computed(() => summaryData.value.chart1);
+const getChart2 = computed(() => summaryData.value.chart2);
+const isChartDataEqualZero = (chartData) => {
+  const data = chartData?.datasets?.[0]?.data ?? [];
+  return data.every((item) => parseInt(item) === 0 || item === null) || data.length === 0;
+};
+const isChart1DataEqualZero = computed(() => isChartDataEqualZero(summaryData.value.chart1));
+const isChart2DataEqualZero = computed(() => isChartDataEqualZero(summaryData.value.chart2));
+
+const reactiveProp = ref({ message: "This is a reactive prop" });
+</script>
+
   
-  const getChart1 = computed(() => summaryData.value.chart1);
-  const getChart2 = computed(() => summaryData.value.chart2);
-  const isChart1DataEqualZero = computed(() => {
-    const isZero = (summaryData.value.chart1?.datasets?.[0]?.data ?? []).every(
-      (item) => parseInt(item) === 0 || item === null
-    );
-    return isZero || (summaryData.value.chart1?.datasets?.[0]?.data ?? []).length === 0;
-  });
-  const isChart2DataEqualZero = computed(() => {
-    const isZero = (summaryData.value.chart2?.datasets?.[0]?.data ?? []).every(
-      (item) => parseInt(item) === 0 || item === null
-    );
-    return isZero || (summaryData.value.chart2?.datasets?.[0]?.data ?? []).length === 0;
-  });
-  const reactiveProp = ref({
-    message: "This is a reactive prop",
-  });
-  </script>
   
   <style></style>

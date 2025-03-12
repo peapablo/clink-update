@@ -12,14 +12,14 @@
     </div>
 
     <div class="table-responsive">
-      <el-table class="table-responsive table"
+      <el-table v-if="tableData && tableData.length" class="table-responsive table"
                 :data="tableData"
                 header-row-class-name="thead-light">
         <el-table-column label="Referral"
                          min-width="115px"
                          prop="name">
-          <template v-slot="{row}">
-            <div class="font-weight-600">{{row.name}}</div>
+          <template v-slot="scope">
+            <div class="font-weight-600">{{ scope.row?.name || "N/A" }}</div>
           </template>
         </el-table-column>
 
@@ -32,15 +32,16 @@
                          prop="progress">
           <template v-slot="{row}">
             <div class="d-flex align-items-center">
-              <span class="mr-2">{{row.progress}}%</span>
-              <base-progress :type="row.progressType"
-                             :value="row.progress"
+              <span class="mr-2">{{row?.progress}}%</span>
+              <base-progress :type="row?.progressType"
+                             :value="row?.progress"
               />
             </div>
           </template>
         </el-table-column>
 
       </el-table>
+      <div v-else>Loading...</div>
     </div>
 
   </div>
@@ -94,7 +95,6 @@
         ]
       }
     }
-
   }
 </script>
 <style>

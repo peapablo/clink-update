@@ -1,4 +1,4 @@
-import { defineComponent, defineProps, watch } from "vue";
+import { defineComponent, defineProps, watch, toRefs } from "vue";
 import { Line } from "vue-chartjs";
 import {
   Chart as ChartJS,
@@ -27,24 +27,20 @@ export default defineComponent({
   components: {
     Line,
   },
-  setup() {
-    const props = defineProps({
-      chartData: Object,
-      extraOptions: Object,
-      reactiveProp: Object,
-    });
+  setup(props) {
+    const { reactiveProp } = toRefs(props); // ✅ Convert to a reactive reference
 
-    // Watch for changes in `reactiveProp`
     watch(
-      () => props.reactiveProp,
+      reactiveProp, // ✅ Watch the reactive ref
       (newVal) => {
+        if (!newVal) return; // Prevent null errors
         console.log("Reactive Prop Updated:", newVal);
       },
       { immediate: true }
     );
 
     return {
-      props,
+      reactiveProp,
     };
   },
 });

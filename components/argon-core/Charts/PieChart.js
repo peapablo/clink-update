@@ -34,7 +34,6 @@ export default defineComponent({
       reactiveProp: Object,
     });
 
-    // Watch for changes in `reactiveProp`
     watch(
       () => props.reactiveProp,
       (newVal) => {

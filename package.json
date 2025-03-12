@@ -10,20 +10,29 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "axios": "^1.8.1",
+    "@nuxtjs-alt/axios": "^1.1.0",
+    "@pinia/nuxt": "^0.10.1",
+    "@vite-pwa/nuxt": "^0.10.6",
+    "axios": "^1.8.2",
+    "bootstrap": "^5.3.3",
     "chart.js": "^4.4.8",
     "element-plus": "^2.9.5",
+    "es6-promise": "^4.2.8",
     "flatpickr": "^4.6.13",
     "nuxt": "^3.15.4",
     "pinia": "^3.0.1",
     "sweetalert2": "^11.17.2",
+    "vee-validate": "^4.15.0",
     "vue": "^3.5.13",
     "vue-chartjs": "^5.3.2",
     "vue-flatpickr-component": "^11.0.5",
     "vue-router": "^4.5.0",
-    "vuex": "^4.0.2"
+    "vue-sweetalert2": "^5.0.11",
+    "vue2-transitions": "^0.3.0"
   },
   "devDependencies": {
+    "sass": "^1.85.1",
+    "sass-embedded": "^1.85.1",
     "vite-plugin-svgr": "^4.3.0"
   }
 }

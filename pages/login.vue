@@ -24,7 +24,7 @@
           <div class="col-lg-5 col-md-7">
             <div class="card bg-secondary border-0 mb-0">
               <div class="card-header bg-transparent pb-3 text-center">
-                <img src="/img/logo/logo-clink.png" style="width: 140px" />
+                <img src="/static/img/logo/logo-clink.png" style="width: 140px" />
               </div>
               <div class="card-body px-lg-5 py-lg-1">
                 <div class="text-center text-muted mb-4">
@@ -51,7 +51,7 @@
   <script setup>
   import { ref, watch, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { useMainStore } from '@/stores/mainStore';
+  import { useMainStore } from '@/store';
   import { ofetch } from 'ofetch';
   import swal from 'sweetalert2';
   import 'sweetalert2/dist/sweetalert2.css';
